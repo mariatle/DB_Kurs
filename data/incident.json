@@ -1,0 +1,74 @@
+[
+    {
+      "status": "Активен",
+      "description": "Обнаружен дым",
+      "detected_at": "2023-10-20T14:40:00Z",
+      "resolved_at": null
+    },
+    {
+      "status": "Завершен",
+      "description": "Ложное срабатывание",
+      "detected_at": "2023-10-20T15:10:00Z",
+      "resolved_at": "2023-10-20T15:30:00Z"
+    },
+    {
+      "status": "Расследование",
+      "description": "Несанкционированный доступ",
+      "detected_at": "2023-10-21T08:25:00Z",
+      "resolved_at": null
+    },
+    {
+      "status": "Завершен",
+      "description": "Утечка воды на 3 этаже",
+      "detected_at": "2023-10-21T11:15:00Z",
+      "resolved_at": "2023-10-21T13:45:00Z"
+    },
+    {
+      "status": "Активен",
+      "description": "Отказ системы вентиляции",
+      "detected_at": "2023-10-22T16:35:00Z",
+      "resolved_at": null
+    },
+    {
+      "status": "Расследование",
+      "description": "Подозрительный предмет",
+      "detected_at": "2023-10-23T09:10:00Z",
+      "resolved_at": null
+    },
+    {
+      "status": "Завершен",
+      "description": "Перепад напряжения",
+      "detected_at": "2023-10-23T13:55:00Z",
+      "resolved_at": "2023-10-23T14:25:00Z"
+    },
+    {
+      "status": "Завершен",
+      "description": "Пожарная тревога - проверка",
+      "detected_at": "2023-10-24T07:20:00Z",
+      "resolved_at": "2023-10-24T07:50:00Z"
+    },
+    {
+      "status": "Отменен",
+      "description": "Ошибка датчика задымления",
+      "detected_at": "2023-10-25T12:05:00Z",
+      "resolved_at": "2023-10-25T12:35:00Z"
+    },
+    {
+      "status": "Активен",
+      "description": "Обрыв электропроводки",
+      "detected_at": "2023-10-26T18:00:00Z",
+      "resolved_at": null
+    },
+    {
+      "status": "Завершен",
+      "description": "Задымление в серверной",
+      "detected_at": "2023-10-27T09:45:00Z",
+      "resolved_at": "2023-10-27T10:30:00Z"
+    },
+    {
+      "status": "Расследование",
+      "description": "Повреждение ограждения",
+      "detected_at": "2023-10-28T14:20:00Z",
+      "resolved_at": null
+    }
+  ]

@@ -1,0 +1,52 @@
+[
+    {
+      "recorded_data": 1,
+      "fire_hazard": 12.3,
+      "analyzed_at": "2023-10-20T14:35:00Z"
+    },
+    {
+      "recorded_data": 2,
+      "fire_hazard": 15.0,
+      "analyzed_at": "2023-10-20T15:05:00Z"
+    },
+    {
+      "recorded_data": 3,
+      "fire_hazard": 18.7,
+      "analyzed_at": "2023-10-20T16:35:00Z"
+    },
+    {
+      "recorded_data": 4,
+      "fire_hazard": 25.4,
+      "analyzed_at": "2023-10-21T09:20:00Z"
+    },
+    {
+      "recorded_data": 5,
+      "fire_hazard": 22.1,
+      "analyzed_at": "2023-10-21T12:50:00Z"
+    },
+    {
+      "recorded_data": 6,
+      "fire_hazard": 32.8,
+      "analyzed_at": "2023-10-22T08:05:00Z"
+    },
+    {
+      "recorded_data": 7,
+      "fire_hazard": 28.5,
+      "analyzed_at": "2023-10-22T14:25:00Z"
+    },
+    {
+      "recorded_data": 8,
+      "fire_hazard": 45.2,
+      "analyzed_at": "2023-10-23T07:35:00Z"
+    },
+    {
+      "recorded_data": 9,
+      "fire_hazard": 38.9,
+      "analyzed_at": "2023-10-24T11:05:00Z"
+    },
+    {
+      "recorded_data": 10,
+      "fire_hazard": 52.1,
+      "analyzed_at": "2023-10-25T13:50:00Z"
+    }
+  ]

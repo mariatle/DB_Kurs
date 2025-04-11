@@ -1,0 +1,82 @@
+[
+    {
+      "location": 1,
+      "inventory_number": "DEV-001",
+      "type": "Датчик температуры",
+      "date_of_installation": "2023-10-20",
+      "latitude": 55.755825,
+      "longitude": 37.617298
+    },
+    {
+      "location": 1,
+      "inventory_number": "DEV-002",
+      "type": "Датчик влажности",
+      "date_of_installation": "2023-10-21",
+      "latitude": 55.755830,
+      "longitude": 37.617302
+    },
+    {
+      "location": 2,
+      "inventory_number": "DEV-003",
+      "type": "Датчик CO2",
+      "date_of_installation": "2023-10-22",
+      "latitude": 55.756100,
+      "longitude": 37.618150
+    },
+    {
+      "location": 2,
+      "inventory_number": "DEV-004",
+      "type": "Датчик давления",
+      "date_of_installation": "2023-10-23",
+      "latitude": 55.756105,
+      "longitude": 37.618155
+    },
+    {
+      "location": 3,
+      "inventory_number": "DEV-005",
+      "type": "Датчик ветра",
+      "date_of_installation": "2023-10-24",
+      "latitude": 55.757000,
+      "longitude": 37.619000
+    },
+    {
+      "location": 4,
+      "inventory_number": "DEV-006",
+      "type": "Комбинированный датчик",
+      "date_of_installation": "2023-10-25",
+      "latitude": 55.757500,
+      "longitude": 37.619500
+    },
+    {
+      "location": 5,
+      "inventory_number": "DEV-007",
+      "type": "Датчик освещенности",
+      "date_of_installation": "2023-10-26",
+      "latitude": 55.758000,
+      "longitude": 37.620000
+    },
+    {
+      "location": 6,
+      "inventory_number": "DEV-008",
+      "type": "Датчик шума",
+      "date_of_installation": "2023-10-27",
+      "latitude": 55.758500,
+      "longitude": 37.620500
+    },
+    {
+      "location": 7,
+      "inventory_number": "DEV-009",
+      "type": "Датчик дождя",
+      "date_of_installation": "2023-10-28",
+      "latitude": 55.759000,
+      "longitude": 37.621000
+    },
+    {
+      "location": 8,
+      "inventory_number": "DEV-010",
+      "type": "Пожарный датчик",
+      "date_of_installation": "2023-10-29",
+      "latitude": 55.759500,
+      "longitude": 37.621500
+    }
+  ]

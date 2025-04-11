@@ -1,0 +1,82 @@
+[
+    {
+      "device": 1,
+      "temperature": 25.5,
+      "humidity": 60.0,
+      "wind_speed": 3.2,
+      "co2_level": 450.00,
+      "recorded_at": "2023-10-20T14:30:00Z"
+    },
+    {
+      "device": 2,
+      "temperature": 22.1,
+      "humidity": 65.5,
+      "wind_speed": 1.8,
+      "co2_level": 500.00,
+      "recorded_at": "2023-10-20T15:00:00Z"
+    },
+    {
+      "device": 1,
+      "temperature": 24.8,
+      "humidity": 58.3,
+      "wind_speed": 2.5,
+      "co2_level": 470.00,
+      "recorded_at": "2023-10-20T16:30:00Z"
+    },
+    {
+      "device": 3,
+      "temperature": 20.7,
+      "humidity": 70.2,
+      "wind_speed": 4.1,
+      "co2_level": 520.00,
+      "recorded_at": "2023-10-21T09:15:00Z"
+    },
+    {
+      "device": 2,
+      "temperature": 21.3,
+      "humidity": 63.8,
+      "wind_speed": 2.0,
+      "co2_level": 490.00,
+      "recorded_at": "2023-10-21T12:45:00Z"
+    },
+    {
+      "device": 4,
+      "temperature": 19.5,
+      "humidity": 75.0,
+      "wind_speed": 5.3,
+      "co2_level": 550.00,
+      "recorded_at": "2023-10-22T08:00:00Z"
+    },
+    {
+      "device": 1,
+      "temperature": 23.9,
+      "humidity": 61.2,
+      "wind_speed": 3.8,
+      "co2_level": 480.00,
+      "recorded_at": "2023-10-22T14:20:00Z"
+    },
+    {
+      "device": 5,
+      "temperature": 18.2,
+      "humidity": 80.1,
+      "wind_speed": 6.0,
+      "co2_level": 580.00,
+      "recorded_at": "2023-10-23T07:30:00Z"
+    },
+    {
+      "device": 3,
+      "temperature": 21.0,
+      "humidity": 68.7,
+      "wind_speed": 3.5,
+      "co2_level": 510.00,
+      "recorded_at": "2023-10-24T11:00:00Z"
+    },
+    {
+      "device": 2,
+      "temperature": 22.5,
+      "humidity": 64.0,
+      "wind_speed": 2.2,
+      "co2_level": 495.00,
+      "recorded_at": "2023-10-25T13:45:00Z"
+    }
+  ]

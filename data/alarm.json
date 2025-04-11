@@ -1,0 +1,72 @@
+[
+    {
+      "analysis": 1,
+      "incident": 1,
+      "status": "Тревога",
+      "alarm_level": "Высокий",
+      "alarm_at": "2023-10-20T14:45:00Z"
+    },
+    {
+      "analysis": 2,
+      "incident": 2,
+      "status": "Отмена",
+      "alarm_level": "Низкий",
+      "alarm_at": "2023-10-20T15:15:00Z"
+    },
+    {
+      "analysis": 3,
+      "incident": 3,
+      "status": "Подтверждено",
+      "alarm_level": "Критический",
+      "alarm_at": "2023-10-21T08:30:00Z"
+    },
+    {
+      "analysis": 4,
+      "incident": 5,
+      "status": "Ложная тревога",
+      "alarm_level": "Средний",
+      "alarm_at": "2023-10-21T11:20:00Z"
+    },
+    {
+      "analysis": 5,
+      "incident": 7,
+      "status": "Тревога",
+      "alarm_level": "Высокий",
+      "alarm_at": "2023-10-22T16:40:00Z"
+    },
+    {
+      "analysis": 6,
+      "incident": 8,
+      "status": "Расследование",
+      "alarm_level": "Средний",
+      "alarm_at": "2023-10-23T09:15:00Z"
+    },
+    {
+      "analysis": 7,
+      "incident": 10,
+      "status": "Отмена",
+      "alarm_level": "Низкий",
+      "alarm_at": "2023-10-23T14:00:00Z"
+    },
+    {
+      "analysis": 8,
+      "incident": 12,
+      "status": "Подтверждено",
+      "alarm_level": "Критический",
+      "alarm_at": "2023-10-24T07:25:00Z"
+    },
+    {
+      "analysis": 9,
+      "incident": 15,
+      "status": "Ложная тревога",
+      "alarm_level": "Средний",
+      "alarm_at": "2023-10-25T12:10:00Z"
+    },
+    {
+      "analysis": 10,
+      "incident": 16,
+      "status": "Тревога",
+      "alarm_level": "Высокий",
+      "alarm_at": "2023-10-26T18:05:00Z"
+    }
+  ]
