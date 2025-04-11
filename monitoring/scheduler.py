@@ -37,7 +37,7 @@ def start_scheduler():
         scheduler.add_job(
             generate_random_data,
             'interval',
-            minutes=20,
+            minutes=1,
             id="env_data_generator",
             replace_existing=True
         )
