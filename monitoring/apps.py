@@ -27,10 +27,12 @@ class MonitoringConfig(AppConfig):
             logger.error(f"Ошибка регистрации сигналов: {e}")
 
     def start_scheduler(self):
-        """Запуск фонового планировщика"""
         try:
             from monitoring.scheduler import start_scheduler
-            start_scheduler()
-            logger.info("Планировщик успешно запущен")
+            if not hasattr(self, 'scheduler_started'):  # Защита от дублирования
+                start_scheduler()
+                self.scheduler_started = True
+                logger.info("Планировщик успешно запущен")
         except Exception as e:
             logger.error(f"Ошибка запуска планировщика: {e}")
+

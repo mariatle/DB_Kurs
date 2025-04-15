@@ -1,3 +1,4 @@
+# scheduler.py
 import random
 from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore
@@ -9,21 +10,21 @@ from django.db import close_old_connections
 logger = logging.getLogger(__name__)
 
 def generate_random_data():
-    """Генерирует случайные данные для EnvironmentalParameters"""
     try:
-        close_old_connections()  # Закрываем старые соединения с БД
+        close_old_connections()
         devices = Device.objects.all()
         
         for device in devices:
             EnvironmentalParameters.objects.create(
                 device=device,
-                temperature=round(random.uniform(-10, 35), 2),
-                humidity=round(random.uniform(0, 100), 2),
-                wind_speed=round(random.uniform(0, 20), 2),
+                temperature=round(random.uniform(20, 50), 2),
+                humidity=round(random.uniform(10, 90), 2),
+                wind_speed=round(random.uniform(0, 25), 2),
                 co2_level=round(random.uniform(300, 2000), 2),
                 recorded_at=timezone.now()
             )
-        logger.info(f"Сгенерированы новые данные в {timezone.now()}")
+        logger.info(f"Сгенерированы данные для {devices.count()} устройств")
+        
     except Exception as e:
         logger.error(f"Ошибка генерации данных: {e}")
     finally:
@@ -37,12 +38,12 @@ def start_scheduler():
         scheduler.add_job(
             generate_random_data,
             'interval',
-            minutes=1,
+            minutes=100,
             id="env_data_generator",
             replace_existing=True
         )
         
-        logger.info("Запуск планировщика...")
+        logger.info("Планировщик запущен")
         scheduler.start()
     except Exception as e:
-        logger.error(f"Ошибка планировщика: {e}")
+        logger.error(f"Ошибка инициализации планировщика: {e}")
