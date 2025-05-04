@@ -7,6 +7,7 @@ from django.db.models import F
 from django.utils import timezone
 from datetime import timedelta
 from .models import (
+    IncidentStatusHistory,
     Location,
     Device,
     EnvironmentalParameters,
@@ -15,6 +16,7 @@ from .models import (
     Alarm
 )
 from .serializers import (
+    IncidentStatusHistorySerializer,
     LocationSerializer,
     DeviceSerializer,
     EnvironmentalParametersSerializer,
@@ -23,6 +25,17 @@ from .serializers import (
     AlarmSerializer,
     TimeLocationGroupedSerializer
 )
+
+# views.py
+class IncidentStatusHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = IncidentStatusHistory.objects.all()
+    serializer_class = IncidentStatusHistorySerializer
+    
+    def get_queryset(self):
+        incident_id = self.request.query_params.get('incident_id')
+        if incident_id:
+            return self.queryset.filter(incident_id=incident_id)
+        return self.queryset.none()
 
 # Стандартные ViewSets для всех моделей
 class LocationViewSet(viewsets.ModelViewSet):

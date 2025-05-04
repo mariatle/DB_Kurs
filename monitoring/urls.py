@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework import routers
 from .views import (
+    IncidentStatusHistoryViewSet,
     LocationViewSet,
     DeviceViewSet,
     EnvironmentalParametersViewSet,
@@ -17,6 +18,7 @@ router.register(r'environmental-parameters', EnvironmentalParametersViewSet)
 router.register(r'analyzed-information', AnalyzedInformationViewSet)
 router.register(r'incidents', IncidentViewSet)
 router.register(r'alarms', AlarmViewSet)
+router.register(r'incident-status-history', IncidentStatusHistoryViewSet, basename='incident-status-history')
 
 urlpatterns = [
     path('', include(router.urls)),

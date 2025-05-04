@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import EnvironmentalParameters, AnalyzedInformation, Alarm
+from .models import EnvironmentalParameters, AnalyzedInformation, Alarm, Incident, IncidentStatusHistory
 from django.utils import timezone
 import logging
 
@@ -55,3 +55,13 @@ def create_alarm_on_hazard(sender, instance, created, **kwargs):
 
         except Exception as e:
             logger.error(f"Ошибка создания тревоги: {str(e)}", exc_info=True)
+            
+# signals.py
+@receiver(post_save, sender=Incident)
+def create_initial_status_history(sender, instance, created, **kwargs):
+    if created:
+        IncidentStatusHistory.objects.create(
+            incident=instance,
+            new_status=instance.status,
+            comment="Инцидент создан"
+        )

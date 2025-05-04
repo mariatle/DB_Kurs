@@ -111,6 +111,69 @@ class AnalyzedInformation(models.Model):
 
 
 class Incident(models.Model):
+    location = models.ForeignKey(
+        'Location',  # Используем строку, чтобы избежать циклических импортов
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Локация'
+    )
+    STATUS_CHOICES = [
+        ('open', 'Открыт'),
+        ('investigation', 'Расследование'),
+        ('resolved', 'Решен'),
+        ('closed', 'Закрыт'),
+    ]
+    # Оставляем текущий статус, но удаляем resolved_at (будет храниться в истории)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='open',
+        verbose_name='Текущий статус'
+    )
+    
+    # Добавляем метод для изменения статуса
+    def change_status(self, new_status, user=None, comment=None):
+        if new_status not in dict(self.STATUS_CHOICES):
+            raise ValueError(f"Invalid status: {new_status}")
+            
+        if self.status == new_status:
+            return False
+            
+        # Создаем запись в истории
+        IncidentStatusHistory.objects.create(
+            incident=self,
+            old_status=self.status,
+            new_status=new_status,
+            changed_by=user,
+            comment=comment
+        )
+        
+        # Обновляем текущий статус
+        self.status = new_status
+        
+        # Если инцидент закрывается, обновляем время решения
+        if new_status == 'closed':
+            self.resolved_at = timezone.now()
+            
+        self.save()
+        return True
+
+    # Модифицируем метод close_incident
+    def close_incident(self, user=None, comment=None):
+        if self.status not in ['closed', 'resolved']:
+            has_unresolved = self.alarms.filter(status='active').exists()
+            
+            if not has_unresolved:
+                return self.change_status('closed', user, comment or "Автоматическое закрытие")
+        return False
+
+# models.py
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class IncidentStatusHistory(models.Model):
     STATUS_CHOICES = [
         ('open', 'Открыт'),
         ('investigation', 'Расследование'),
@@ -118,70 +181,49 @@ class Incident(models.Model):
         ('closed', 'Закрыт'),
     ]
     
-    location = models.ForeignKey(
-        Location,
+    incident = models.ForeignKey(
+        'Incident',
         on_delete=models.CASCADE,
-        verbose_name='Локация',
-        null=True
+        related_name='status_history',
+        verbose_name='Инцидент'
     )
-    time_window_start = models.DateTimeField(
-        verbose_name='Начало временного окна',
-        default=timezone.now
-    )
-    time_window_end = models.DateTimeField(
-        verbose_name='Конец временного окна',
-        null=True,
-        blank=True
-    )
-    status = models.CharField(
+    old_status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='open',
-        verbose_name='Статус'
-    )
-    description = models.TextField(
         blank=True,
         null=True,
-        verbose_name='Описание'
+        verbose_name='Предыдущий статус'
     )
-    detected_at = models.DateTimeField(
-        verbose_name='Время обнаружения'
+    new_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        verbose_name='Новый статус'
     )
-    resolved_at = models.DateTimeField(
+    changed_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Время изменения'
+    )
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Кто изменил'
+    )
+    comment = models.TextField(
         blank=True,
         null=True,
-        verbose_name='Время решения'
+        verbose_name='Комментарий'
     )
 
     class Meta:
-        db_table = "incident"
-        verbose_name = "Инцидент"
-        verbose_name_plural = "Incident"
-        indexes = [
-            models.Index(fields=['status', 'detected_at']),
-        ]
-        ordering = ['-detected_at']
-
-    def close_incident(self):
-        """Закрытие инцидента"""
-        if self.status not in ['closed', 'resolved']:
-            has_unresolved = self.alarms.filter(status='active').exists()
-            
-            if not has_unresolved:
-                self.status = 'closed'
-                self.resolved_at = timezone.now()
-                self.save(update_fields=['status', 'resolved_at'])
-                logger.info(f"Инцидент {self.id} закрыт")
-                return True
-        return False
-
-    def clean(self):
-        if self.resolved_at and self.detected_at:
-            if self.resolved_at < self.detected_at:
-                raise ValidationError("Время решения не может быть раньше времени обнаружения")
+        db_table = "incident_status_history"
+        verbose_name = "История статуса инцидента"
+        verbose_name_plural = "Истории статусов инцидентов"
+        ordering = ['-changed_at']
 
     def __str__(self):
-        return f"Инцидент #{self.id} - {self.get_status_display()}"
+        return f"{self.incident.id}: {self.old_status} → {self.new_status}"
 
 
 class Alarm(models.Model):

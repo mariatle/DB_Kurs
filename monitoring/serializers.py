@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import (
+    IncidentStatusHistory,
     Location,
     Device,
     EnvironmentalParameters,
@@ -94,3 +95,14 @@ class TimeLocationGroupedSerializer(serializers.Serializer):
     max_co2 = serializers.DecimalField(max_digits=10, decimal_places=2)
     hazard_index = serializers.DecimalField(max_digits=5, decimal_places=2)
     device_count = serializers.IntegerField()
+    
+    
+    
+# serializers.py
+class IncidentStatusHistorySerializer(serializers.ModelSerializer):
+    changed_by = serializers.StringRelatedField()  # Или UserSerializer, если есть
+    
+    class Meta:
+        model = IncidentStatusHistory
+        fields = '__all__'
+        read_only_fields = ('changed_at',)
