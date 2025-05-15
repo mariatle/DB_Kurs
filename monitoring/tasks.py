@@ -1,7 +1,7 @@
 # monitoring/tasks.py
 import logging
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from celery import shared_task
 from django.db import close_old_connections, transaction
@@ -19,36 +19,29 @@ logger = logging.getLogger(__name__)
 # ───────────────────────────────────────────────────────────
 # 1) генерация телеметрии – каждые 5 с (Celery Beat)
 # ───────────────────────────────────────────────────────────
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def generate_random_data(self):
-    """
-    Создаёт по одной записи EnvironmentalParameters
-    для каждого Device. Частота задаётся в CELERY_BEAT_SCHEDULE.
-    """
-    try:
-        close_old_connections()
-        now = timezone.now()
+@shared_task
+def generate_random_data():
+    """Генерирует случайные параметры среды для всех устройств."""
+    # Список идентификаторов устройств (пример)
+    devices = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-        devices = Device.objects.all().only("id")
-        bulk = [
-            EnvironmentalParameters(
-                device_id=d.id,
-                temperature=round(random.uniform(20, 50), 2),
-                humidity=round(random.uniform(10, 90), 2),
-                co2_level=round(random.uniform(300, 2000), 2),
-                recorded_at=now,
-            )
-            for d in devices
-        ]
+    data = [
+        EnvironmentalParameters(
+            device_id=device,
+            temperature=random.uniform(15, 35),
+            humidity=random.uniform(30, 80),
+            co2=random.uniform(300, 600),
+            recorded_at=datetime.now()
+        )
+        for device in devices
+    ]
+    
+    # Сохраняем пачкой для производительности
+    EnvironmentalParameters.objects.bulk_create(data)
+    logger.info("ENV создано: %s", len(data))
 
-        with transaction.atomic():
-            EnvironmentalParameters.objects.bulk_create(bulk, ignore_conflicts=True)
-
-        logger.info("ENV task: сгенерировано %s строк", len(bulk))
-
-    except Exception as exc:
-        logger.exception("ENV task error – retry через 5 с")
-        raise self.retry(exc=exc)
+    # Сразу вызываем анализ с задержкой в 5 секунд
+    calculate_hazard_batch.apply_async(countdown=5)
 
 
 # ───────────────────────────────────────────────────────────
@@ -102,3 +95,4 @@ def purge_old_env(days: int = 30):
         recorded_at__lt=cutoff
     ).delete()
     logger.info("PURGE: удалено %s старых ENV", deleted)
+    
