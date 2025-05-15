@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Дашборд — FireMonitor{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+ .kpi-card{border-radius:8px;background:#f8f9fa}
+ .kpi-value{font-size:2rem;font-weight:600}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-3">🔥 FireMonitor Dashboard</h2>
+
+  <!-- KPI -->
+  <div class="row g-3 mb-4">
+    <div class="col-md">
+      <div class="p-3 kpi-card text-center">
+        <div class="kpi-value">{{ device_total }}</div>
+        <div>Устройств</div>
+      </div>
+    </div>
+    <div class="col-md">
+      <div class="p-3 kpi-card text-center">
+        <div class="kpi-value text-danger">{{ alarm_active }}</div>
+        <div>Активных тревог</div>
+      </div>
+    </div>
+    <div class="col-md">
+      <div class="p-3 kpi-card text-center">
+        <div class="kpi-value text-warning">{{ incident_open }}</div>
+        <div>Открытых инцидентов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- график -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Тревоги за последние 7 дней</h5>
+      <canvas id="alarmsChart" height="110"></canvas>
+    </div>
+  </div>
+
+  <!-- таблица тревог -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Последние критические тревоги</h5>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr><th>#</th><th>Устройство</th><th>Уровень</th><th>Время</th></tr>
+          </thead>
+          <tbody>
+          {% for a in latest_alarms %}
+            <tr>
+              <td>{{ a.id }}</td>
+              <td>{{ a.analysis.recorded_data.device.inventory_number }}</td>
+              <td class="text-uppercase">{{ a.get_alarm_level_display }}</td>
+              <td>{{ a.alarm_at|date:"d.m H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-center">Нет данных</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <a href="{% url 'dashboard:device-map' %}"
+     class="btn btn-outline-primary mb-4">🌍 Перейти на карту устройств</a>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const ctx = document.getElementById("alarmsChart");
+  new Chart(ctx, {
+    type:"line",
+    data:{labels:{{ chart_labels|safe }},datasets:[{
+      label:"Тревоги",
+      data:{{ chart_data|safe }},
+      borderWidth:2,tension:.3,fill:false
+    }]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  });
+});
+</script>
+{% endblock %}

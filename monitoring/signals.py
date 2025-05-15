@@ -1,67 +1,53 @@
+# monitoring/signals.py
+import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import EnvironmentalParameters, AnalyzedInformation, Alarm, Incident, IncidentStatusHistory
 from django.utils import timezone
-import logging
+
+from .models import AnalyzedInformation, Alarm, Incident, IncidentStatusHistory
 
 logger = logging.getLogger(__name__)
 
-@receiver(post_save, sender=EnvironmentalParameters)
-def analyze_environmental_data(sender, instance, created, **kwargs):
-    if created:  # Только для новых записей
-        try:
-            fire_hazard = AnalyzedInformation.calculate_fire_hazard(instance)
-            
-            AnalyzedInformation.objects.create(
-                recorded_data=instance,
-                fire_hazard=fire_hazard,
-                analyzed_at=timezone.now()
-            )
-            
-        except Exception as e:
-            logger.error(f"Error analyzing data: {e}")
-            
+# --- мгновенный анализ ENV убран — его делает Celery‑task ---
+
 @receiver(post_save, sender=Alarm)
 def handle_alarm_update(sender, instance, created, **kwargs):
-    if instance.status == 'resolved' and instance.incident:
+    if instance.status == "resolved" and instance.incident:
         instance.incident.close_incident()
-        
+
+
 @receiver(post_save, sender=AnalyzedInformation)
 def create_alarm_on_hazard(sender, instance, created, **kwargs):
-    logger.info(f"Сигнал получен: created={created}, fire_hazard={instance.fire_hazard}")
-    
-    if created and instance.fire_hazard is not None:
-        try:
-            logger.debug(f"Расчет уровня тревоги для fire_hazard={instance.fire_hazard}")
-            
-            if instance.fire_hazard >= 90:
-                level = 'critical'
-            elif instance.fire_hazard >= 70:
-                level = 'high'
-            elif instance.fire_hazard >= 50:
-                level = 'medium'
-            else:
-                logger.info("Уровень опасности ниже порогового значения")
-                return
+    if not (created and instance.fire_hazard is not None):
+        return
 
-            logger.info(f"Попытка создания тревоги уровня {level}")
-            Alarm.objects.create(
-                analysis=instance,
-                alarm_level=level,
-                status='active',
-                alarm_at=timezone.now()
-            )
-            logger.info(f"Тревога успешно создана")
+    if instance.fire_hazard >= 90:
+        level = "critical"
+    elif instance.fire_hazard >= 70:
+        level = "high"
+    elif instance.fire_hazard >= 50:
+        level = "medium"
+    else:
+        return
 
-        except Exception as e:
-            logger.error(f"Ошибка создания тревоги: {str(e)}", exc_info=True)
-            
-# signals.py
+    try:
+        Alarm.objects.create(
+            analysis=instance,
+            alarm_level=level,
+            status="active",
+            alarm_at=timezone.now(),
+        )
+        logger.info("Создана тревога уровня %s", level)
+    except Exception as e:
+        logger.error("Ошибка создания тревоги: %s", e, exc_info=True)
+
+
 @receiver(post_save, sender=Incident)
 def create_initial_status_history(sender, instance, created, **kwargs):
     if created:
         IncidentStatusHistory.objects.create(
             incident=instance,
             new_status=instance.status,
-            comment="Инцидент создан"
+            comment="Инцидент создан",
         )

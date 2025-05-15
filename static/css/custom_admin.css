@@ -1,0 +1,33 @@
+/* custom_admin.css  */
+
+:root {
+    --fire-orange: #e85808;
+    --fire-dark:   #1f1f1f;
+}
+
+#header {
+    background: var(--fire-dark);
+}
+
+#header #branding a:link,
+#header #branding a:visited {
+    color: var(--fire-orange);
+    font-weight: 600;
+}
+
+.module caption {
+    background: var(--fire-dark);
+    color: #fff;
+}
+
+.submit-row input {
+    background: var(--fire-orange);
+    border-color: var(--fire-orange);
+}
+
+/* Пример — делаем таблицы более &laquo;плотными&raquo; */
+.change-list table th,
+.change-list table td {
+    padding: 6px 10px;
+    font-size: 13px;
+}

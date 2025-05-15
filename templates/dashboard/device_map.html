@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<style>#map{height:85vh}</style>
+
+<h2 class="mb-2">Карта устройств</h2>
+
+<div class="mb-2">
+  Показать тревоги:
+  <label class="me-2"><input type="checkbox" class="lvl" value="critical" checked> Critical</label>
+  <label class="me-2"><input type="checkbox" class="lvl" value="high"     checked> High</label>
+  <label class="me-2"><input type="checkbox" class="lvl" value="medium"   checked> Medium</label>
+  <label><input type="checkbox" class="lvl" value="low"      checked> Low</label>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+/* ─ 1. базовая карта ─ */
+const map = L.map("map").setView([20,0],2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+/* ─ 2. иконки ─ */
+const iconMaker = c => L.icon({
+  iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${c}.png`,
+  shadowUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize:[25,41], iconAnchor:[12,41]
+});
+const icons = {
+  low:iconMaker("green"), medium:iconMaker("yellow"),
+  high:iconMaker("orange"), critical:iconMaker("red")
+};
+
+/* ─ 3. кластеры ─ */
+const sev = ["low","medium","high","critical"];
+const cluster = L.markerClusterGroup({
+  iconCreateFunction: cl=>{
+    let worst="low";
+    cl.getAllChildMarkers().forEach(m=>{
+      if(sev.indexOf(m.options.alarm_level) > sev.indexOf(worst)) worst=m.options.alarm_level;
+    });
+    return L.divIcon({
+      html:`<div class="c-badge">${cl.getChildCount()}</div>`,
+      className:`c-wrap ${worst}`, iconSize:[40,40]
+    });
+  }
+});
+map.addLayer(cluster);
+const css=document.createElement("style");
+css.textContent=`
+ .c-wrap{border-radius:50%;border:2px solid #fff}
+ .c-badge{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;
+          justify-content:center;color:#fff;font-weight:600}
+ .critical .c-badge{background:#e74c3c}
+ .high .c-badge{background:#e67e22}
+ .medium .c-badge{background:#f1c40f;color:#222}
+ .low .c-badge{background:#45a049}`;
+document.head.appendChild(css);
+
+/* ─ 4. данные ─ */
+let devices=[];
+const allowed=()=>Array.from(document.querySelectorAll(".lvl:checked")).map(cb=>cb.value);
+
+async function load(){
+  const r=await fetch("{% url 'device-list' %}?has_coords=1");
+  devices=await r.json();
+  draw();
+}
+function draw(){
+  cluster.clearLayers();
+  const allow=allowed();
+  devices.filter(d=>allow.includes(d.current_alarm)).forEach(d=>{
+    const m=L.marker([d.latitude,d.longitude],{
+      icon:icons[d.current_alarm],
+      alarm_level:d.current_alarm
+    }).bindPopup(popup(d));
+    m.device_id=d.id;
+    cluster.addLayer(m);
+  });
+  if(devices.length) map.fitBounds(cluster.getBounds(),{maxZoom:12});
+}
+function popup(d){
+  return `<div style="min-width:180px">
+    <b>${d.inventory_number}</b><br>
+    Alarm: <b>${d.current_alarm}</b><br>
+    Avg hazard 1 h: <b>${(+d.avg_hazard_1h).toFixed(1)}%</b><br>
+    <canvas id="hc${d.id}" height="90"></canvas>
+  </div>`;
+}
+
+/* ─ 5. мини‑график ─ */
+map.on("popupopen", async e=>{
+  const cvs=document.getElementById("hc"+e.popup._source.device_id);
+  if(!cvs) return;
+  const r=await fetch(`/device/${e.popup._source.device_id}/hazard-series/`);
+  const j=await r.json();
+  new Chart(cvs,{type:"line",
+    data:{labels:j.labels,datasets:[{data:j.data,fill:false,tension:.3}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{suggestedMin:0,suggestedMax:100}}}
+  });
+});
+
+/* ─ 6. события ─ */
+document.querySelectorAll(".lvl").forEach(cb=>cb.onchange=draw);
+load(); setInterval(load,30000);
+</script>
+{% endblock %}

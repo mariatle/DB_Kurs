@@ -19,7 +19,7 @@ def generate_random_data():
                 device=device,
                 temperature=round(random.uniform(20, 50), 2),
                 humidity=round(random.uniform(10, 90), 2),
-                wind_speed=round(random.uniform(0, 25), 2),
+                
                 co2_level=round(random.uniform(300, 2000), 2),
                 recorded_at=timezone.now()
             )
@@ -38,7 +38,7 @@ def start_scheduler():
         scheduler.add_job(
             generate_random_data,
             'interval',
-            minutes=100,
+            minutes=1,
             id="env_data_generator",
             replace_existing=True
         )

@@ -1,13 +1,19 @@
+from datetime import timedelta
+
+from django.utils import timezone
+from django.db.models import Avg
 from rest_framework import serializers
+
 from .models import (
-    IncidentStatusHistory,
     Location,
     Device,
     EnvironmentalParameters,
     AnalyzedInformation,
     Incident,
-    Alarm
+    Alarm,
+    IncidentStatusHistory
 )
+
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -16,19 +22,55 @@ class LocationSerializer(serializers.ModelSerializer):
         fields = '__all__'  # Или можно указать конкретные поля: ['id', 'location_name', 'description']
 
 
+# monitoring/serializers.py
 class DeviceSerializer(serializers.ModelSerializer):
-    location = LocationSerializer(read_only=True)  # Вложенный сериализатор для локации
+    # читаемая локация + write‑only FK
+    location = LocationSerializer(read_only=True)
     location_id = serializers.PrimaryKeyRelatedField(
         queryset=Location.objects.all(),
-        source='location',
+        source="location",
         write_only=True,
-        required=True
+        required=True,
     )
+
+    # динамика для дашборда
+    current_alarm = serializers.SerializerMethodField()
+    avg_hazard_1h = serializers.SerializerMethodField()
 
     class Meta:
         model = Device
-        fields = '__all__'  # Или выбрать нужные поля
+        fields = [
+            "id",
+            "inventory_number",
+            "latitude",
+            "longitude",
+            "current_alarm",
+            "avg_hazard_1h",
+            "location",
+            "location_id",
+        ]
+        read_only_fields = ("current_alarm", "avg_hazard_1h", "location")
 
+    # ───── helpers ────────────────────────────────────────────
+    def get_current_alarm(self, obj):
+        level = (
+            obj.environmentalparameters_set.filter(
+                analyzedinformation__alarms__status="active"
+            )
+            .order_by("-analyzedinformation__alarms__alarm_at")
+            .values_list("analyzedinformation__alarms__alarm_level", flat=True)
+            .first()
+        )
+        return level or "low"
+
+    def get_avg_hazard_1h(self, obj):
+        cutoff = timezone.now() - timedelta(hours=1)
+        val = (
+            AnalyzedInformation.objects.filter(
+                recorded_data__device=obj, analyzed_at__gte=cutoff
+            ).aggregate(avg=Avg("fire_hazard"))["avg"]
+        )
+        return round(val or 0, 1)
 
 class EnvironmentalParametersSerializer(serializers.ModelSerializer):
     device = DeviceSerializer(read_only=True)  # Вложенный сериализатор для устройства

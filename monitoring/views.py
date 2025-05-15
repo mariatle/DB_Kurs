@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.db.models import Avg, Max, Min, Count
 from django.db.models.functions import TruncHour, TruncDay
 from django.db.models import F
+from rest_framework.decorators import api_view
 from django.utils import timezone
 from datetime import timedelta
 from .models import (
@@ -25,6 +26,7 @@ from .serializers import (
     AlarmSerializer,
     TimeLocationGroupedSerializer
 )
+from monitoring import models
 
 # views.py
 class IncidentStatusHistoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -42,9 +44,9 @@ class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
 
-class DeviceViewSet(viewsets.ModelViewSet):
-    queryset = Device.objects.all()
-    serializer_class = DeviceSerializer
+# class DeviceViewSet(viewsets.ModelViewSet):
+#     queryset = Device.objects.all()
+#     serializer_class = DeviceSerializer
 
 class EnvironmentalParametersViewSet(viewsets.ModelViewSet):
     queryset = EnvironmentalParameters.objects.all()
@@ -141,3 +143,28 @@ class TimeLocationGroupedView(APIView):
             'location_filter': location_id,
             'results': serializer.data
         })
+        
+class DeviceViewSet(viewsets.ModelViewSet):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.query_params.get("has_coords"):
+            qs = qs.filter(latitude__isnull=False, longitude__isnull=False)
+        return qs
+    
+    
+@api_view(["GET"])
+def hazard_series(request, device_id):
+    cutoff = timezone.now() - timedelta(hours=24)
+    rows = (AnalyzedInformation.objects
+            .filter(recorded_data__device_id=device_id,
+                    analyzed_at__gte=cutoff)
+            .annotate(h=TruncHour("analyzed_at"))
+            .values("h")
+            .order_by("h")
+            .annotate(val=models.Avg("fire_hazard")))
+    labels = [r["h"].strftime("%H:%M") for r in rows]
+    data   = [round(r["val"] or 0, 1) for r in rows]
+    return Response({"labels": labels, "data": data})

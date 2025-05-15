@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{# ---------------------------  Заголовок и тайтл  #}
+{% block title %}FireMonitor Admin{% endblock %}
+{% block branding %}
+  <h1 id="site-name">
+      <a href="{% url 'admin:index' %}">🔥 FireMonitor</a>
+  </h1>
+{% endblock %}
+
+{# ---------------------------  Подключаем CSS #}
+{% block extrastyle %}
+  {{ block.super }}  {# &larr; оставляем встроенные стили админки #}
+  <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+{% endblock %}
+
+{# ---------------------------  Подключаем JS (опционально) #}
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'js/custom_admin.js' %}"></script>
+{% endblock %}
+
+{# ---------------------------  Подвал (необязательно) #}
+{% block footer %}
+  <div class="text-muted py-2 text-center">
+      © 2025 ООО &laquo;FireMonitor&raquo;. Все права защищены.
+  </div>
+{% endblock %}
+
+<li><a href="{% url 'device-map' %}" target="_blank">Карта устройств</a></li>
