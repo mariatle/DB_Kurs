@@ -1,98 +1,91 @@
-# monitoring/tasks.py
-import logging
 import random
-from datetime import datetime, timedelta
+import logging
+from datetime import timedelta
 
 from celery import shared_task
 from django.db import close_old_connections, transaction
 from django.utils import timezone
 
-from .models import (
-    Device,
-    EnvironmentalParameters,
-    AnalyzedInformation,
-)
+from .models import Device, EnvironmentalParameters, AnalyzedInformation
 
 logger = logging.getLogger(__name__)
 
-
-# ───────────────────────────────────────────────────────────
-# 1) генерация телеметрии – каждые 5 с (Celery Beat)
-# ───────────────────────────────────────────────────────────
-@shared_task
-def generate_random_data():
-    """Генерирует случайные параметры среды для всех устройств."""
-    # Список идентификаторов устройств (пример)
-    devices = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-    data = [
-        EnvironmentalParameters(
-            device_id=device,
-            temperature=random.uniform(15, 35),
-            humidity=random.uniform(30, 80),
-            co2=random.uniform(300, 600),
-            recorded_at=datetime.now()
-        )
-        for device in devices
-    ]
-    
-    # Сохраняем пачкой для производительности
-    EnvironmentalParameters.objects.bulk_create(data)
-    logger.info("ENV создано: %s", len(data))
-
-    # Сразу вызываем анализ с задержкой в 5 секунд
-    calculate_hazard_batch.apply_async(countdown=5)
-
-
-# ───────────────────────────────────────────────────────────
-# 2) batch‑анализ – каждые 5 с (Celery Beat)
-#    Alarm создаёт сигнал post_save в signals.py
-# ───────────────────────────────────────────────────────────
+# ───────────────────────── 1) генерация ─────────────────────────
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def calculate_hazard_batch(self, batch_size: int = 1000):
+def generate_random_data(self):
     """
-    Берёт непроцессed EnvironmentalParameters,
-    рассчитывает fire_hazard и сохраняет AnalyzedInformation.
-    Alarm далее создаётся сигналом create_alarm_on_hazard.
+    Создаёт по одной записи EnvironmentalParameters
+    для каждого Device и сразу ставит задачу анализа.
     """
     try:
-        rows = (
-            EnvironmentalParameters.objects
-            .filter(processed=False)
-            .order_by("id")[:batch_size]
-        )
+        close_old_connections()
+        now = timezone.now()
+
+        devices = Device.objects.all().only("id")
+        bulk = [
+            EnvironmentalParameters(
+                device_id=d.id,
+                temperature=round(random.uniform(20, 50), 2),
+                humidity=round(random.uniform(10, 90), 2),
+                co2_level=round(random.uniform(300, 2000), 2),   # &larr; ТОЛЬКО co2_level
+                recorded_at=now,
+            )
+            for d in devices
+        ]
+        EnvironmentalParameters.objects.bulk_create(bulk, ignore_conflicts=True)
+        logger.info("ENV создано: %s", len(bulk))
+
+        # сразу ставим анализ через 5 с
+        calculate_hazard_batch.apply_async(countdown=5)
+
+    except Exception as exc:
+        logger.exception("ENV task error — retry через 5 с")
+        raise self.retry(exc=exc)
+
+# ───────────────────────── 2) анализ ────────────────────────────
+# monitoring/tasks.py  – внутри calculate_hazard_batch
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
+def calculate_hazard_batch(self, batch_size: int = 1000):
+    try:
+        rows = (EnvironmentalParameters.objects
+                .filter(processed=False)
+                .order_by("id")[:batch_size])
         if not rows:
-            return  # нечего обрабатывать
+            return
 
         with transaction.atomic():
             for row in rows:
                 hazard = AnalyzedInformation.calculate_fire_hazard(row)
+
+                # &darr; СОЗДАЁМ ОТДЕЛЬНО — сработает post_save &rarr; create_alarm_on_hazard
                 AnalyzedInformation.objects.create(
                     recorded_data=row,
                     fire_hazard=hazard,
                 )
-                row.processed = True   # помечаем
+                row.processed = True
+
             EnvironmentalParameters.objects.bulk_update(rows, ["processed"])
 
         logger.info("Hazard batch: обработано %s ENV", len(rows))
 
     except Exception as exc:
-        logger.exception("Hazard batch error – retry через 5 с")
+        logger.exception("Hazard batch error — retry через 5 с")
         raise self.retry(exc=exc)
-
-
-# ───────────────────────────────────────────────────────────
-# 3) ежедневная чистка старых данных
-# ───────────────────────────────────────────────────────────
+# ───────────────────────── 3) чистка ────────────────────────────
 @shared_task
 def purge_old_env(days: int = 30):
     """
-    Удаляет EnvironmentalParameters старше N дней.
-    Запускается раз в сутки из Celery Beat.
+    Удаляет ТОЛЬКО те ENV, которые ещё не анализировались
+    (processed=False и нет ссылки в AnalyzedInformation)
+    и старше заданного порога.
     """
     cutoff = timezone.now() - timedelta(days=days)
-    deleted, _ = EnvironmentalParameters.objects.filter(
-        recorded_at__lt=cutoff
-    ).delete()
-    logger.info("PURGE: удалено %s старых ENV", deleted)
-    
+    qs = (
+        EnvironmentalParameters.objects
+        .filter(recorded_at__lt=cutoff,
+                processed=False,
+                analyzedinformation__isnull=True)
+    )
+    deleted, _ = qs.delete()
+    logger.info("PURGE: удалено %s сырых ENV", deleted)

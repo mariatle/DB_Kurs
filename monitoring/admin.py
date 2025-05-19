@@ -9,11 +9,10 @@ from .models import (
     AnalyzedInformation,
     Alarm,
     Incident,
+    IncidentStatusHistory,          
 )
 
-# ──────────────────────────
-# Базовые модели
-# ──────────────────────────
+
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("id", "location_name", "description")
@@ -22,7 +21,13 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
-    list_display = ("id", "inventory_number", "location", "type", "date_of_installation")
+    list_display = (
+        "id",
+        "inventory_number",
+        "location",
+        "type",
+        "date_of_installation",
+    )
     list_filter = ("location", "type")
     search_fields = ("inventory_number",)
 
@@ -56,9 +61,7 @@ class AlarmAdmin(admin.ModelAdmin):
     readonly_fields = ("alarm_at",)
 
 
-# ──────────────────────────
-# Инциденты
-# ──────────────────────────
+
 @admin.register(Incident)
 class IncidentAdmin(admin.ModelAdmin):
     list_display = ("id", "display_location", "time_window", "status", "alarms_count")
@@ -70,21 +73,45 @@ class IncidentAdmin(admin.ModelAdmin):
         "resolved_at",
     )
 
-    # ── Локация ────────────────────────────
+    def save_model(self, request, obj, form, change):
+        """
+        Сохраняем объект обычным способом, а затем —
+        если статус изменился — добавляем запись в history
+        с указанием пользователя.
+        """
+        old_status = getattr(obj, "_original_status", obj.status)
+        super().save_model(request, obj, form, change)
+
+        if change and old_status != obj.status:
+            IncidentStatusHistory.objects.create(
+                incident=obj,
+                old_status=old_status,
+                new_status=obj.status,
+                changed_by=request.user,
+                comment="Изменено через админ-панель",
+            )
+
+            obj._original_status = obj.status
+
+
     def display_location(self, obj):
         return obj.location.location_name if obj.location else "Не указана"
 
     display_location.short_description = "Локация"
 
-    # ── Временное окно ─────────────────────
+
     def time_window(self, obj):
         start = timezone.localtime(obj.time_window_start)
-        end = timezone.localtime(obj.time_window_end) if obj.time_window_end else None
+        end = (
+            timezone.localtime(obj.time_window_end)
+            if obj.time_window_end
+            else None
+        )
         return f"{start:%H:%M} – {end:%H:%M}" if end else f"{start:%H:%M} – …"
 
     time_window.short_description = "Временное окно"
 
-    # ── Кол‑во тревог ──────────────────────
+
     def alarms_count(self, obj):
         return obj.alarms.count()
 

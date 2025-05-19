@@ -8,6 +8,15 @@ from django.db import models
 from django.db.models import Q
 from django.forms import ValidationError
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+
+def get_system_user():
+    """
+    Возвращает специального пользователя `system`
+    (создайте его один раз через createsuperuser).
+    """
+    return get_user_model().objects.get(username="system")
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -47,21 +56,40 @@ class Device(models.Model):
 # ──────────────────────────
 #  Сырая телеметрия
 # ──────────────────────────
+# monitoring/models.py  (фрагмент)
+
+from django.db import models
+from django.db.models import Q
+from django.utils import timezone
+
 class EnvironmentalParameters(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
-    temperature = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    humidity = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    co2_level = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    recorded_at = models.DateTimeField(default=timezone.now)
-    processed = models.BooleanField(default=False)
+    device       = models.ForeignKey(Device, on_delete=models.CASCADE)
+    temperature  = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    humidity     = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    co2_level    = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    recorded_at  = models.DateTimeField(default=timezone.now)
+    processed    = models.BooleanField(default=False)
 
     class Meta:
         db_table = "environmental_parameters"
         verbose_name_plural = "EnvironmentalParameters"
+
+        # ─── новые индексы ──────────────────────────────────────
         indexes = [
-            models.Index(fields=["device", "recorded_at"]),
-            models.Index(fields=["recorded_at"]),
+            # 1) составной: ускоряет сортировку последних записей по устройству
+            models.Index(
+                fields=["device", "recorded_at"],
+                name="env_dev_rec_idx",
+            ),
+            # 2) частичный: &laquo;живой хвост&raquo; только необработанных строк
+            models.Index(
+                fields=["recorded_at"],
+                name="env_processed_false_idx",
+                condition=Q(processed=False),
+            ),
         ]
+
+        # 旧 Check‑constraints оставляем без изменений
         constraints = [
             models.CheckConstraint(
                 check=Q(temperature__gte=-50, temperature__lte=200),
@@ -77,7 +105,6 @@ class EnvironmentalParameters(models.Model):
     def __str__(self):
         local_ts = timezone.localtime(self.recorded_at)
         return f"{self.device} @ {local_ts:%Y-%m-%d %H:%M:%S}"
-
 
 # ──────────────────────────
 #  Анализ
@@ -184,8 +211,13 @@ class Incident(models.Model):
 
     # —— метод для скриптов / action-кнопок ——
     def change_status(self, new_status, user=None, comment=None):
+        # если вызвали без указания пользователя &rarr; берём системного
+        if user is None:
+            user = get_system_user()
+
         if new_status not in dict(self.STATUS_CHOICES):
             raise ValueError(f"Invalid status: {new_status}")
+
         if self.status == new_status:
             return False
 
@@ -193,8 +225,10 @@ class Incident(models.Model):
         if new_status == "closed":
             self.resolved_at = timezone.now()
 
+        # передаём пользователя дальше — save() создаст history
         self.save(changed_by=user, comment=comment)
         return True
+
 
     def close_incident(self, user=None, comment=None):
         if self.status not in ["closed", "resolved"] and not self.alarms.filter(status="active").exists():
@@ -337,3 +371,4 @@ class Alarm(models.Model):
 
     def __str__(self):
         return f"Alarm #{self.id} - {self.get_alarm_level_display()} ({self.get_status_display()})"
+    

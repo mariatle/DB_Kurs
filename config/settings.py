@@ -2,7 +2,7 @@ from pathlib import Path
 import environ
 from celery.schedules import crontab
 
-# ───────────── БАЗА ─────────────
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
@@ -10,7 +10,7 @@ env = environ.Env(
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
-# ───────────── ОСНОВНЫЕ НАСТРОЙКИ ─────────────
+
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
@@ -24,9 +24,11 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# ───────────── ПРИЛОЖЕНИЯ ─────────────
+
 INSTALLED_APPS = [
     "rest_framework_simplejwt",
+                
+
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,7 +44,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
 ]
 
-# ───────────── MIDDLEWARE ─────────────
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -53,7 +55,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# ───────────── URL, WSGI, TEMPLATES ─────────────
+
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
@@ -74,13 +76,13 @@ TEMPLATES = [
     },
 ]
 
-# ───────────── СТАТИКА ─────────────
+
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ───────────── БАЗА ДАННЫХ ─────────────
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -92,13 +94,13 @@ DATABASES = {
     }
 }
 
-# ───────────── I18N ─────────────
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
-# ───────────── REST FRAMEWORK ─────────────
+
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -113,7 +115,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
 
-# ───────────── CELERY ─────────────
+
 REDIS_URL = env("REDIS_URL")
 CELERY_BROKER_URL = f"{REDIS_URL}/0"
 CELERY_RESULT_BACKEND = f"{REDIS_URL}/1"
@@ -125,12 +127,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "monitoring.tasks.generate_random_data",
         "schedule": crontab(minute="*/10"),
     },
-    "calc_hazard_every_10min": {
-        "task": "monitoring.tasks.calculate_hazard_batch",
-        "schedule": crontab(minute="*/10"),
-    },
+
     "purge_old_env_daily": {
         "task": "monitoring.tasks.purge_old_env",
         "schedule": crontab(hour=3, minute=0),
     },
 }
+

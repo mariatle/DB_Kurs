@@ -1,6 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import DeviceFilter
+from rest_framework.permissions import AllowAny  
+from rest_framework.viewsets import ModelViewSet
 from django.db.models import Avg, Max, Min, Count
 from django.db.models.functions import TruncHour, TruncDay
 from django.db.models import F
@@ -55,10 +59,25 @@ class EnvironmentalParametersViewSet(viewsets.ModelViewSet):
 class AnalyzedInformationViewSet(viewsets.ModelViewSet):
     queryset = AnalyzedInformation.objects.all()
     serializer_class = AnalyzedInformationSerializer
-
+    
 class IncidentViewSet(viewsets.ModelViewSet):
     queryset = Incident.objects.all()
     serializer_class = IncidentSerializer
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        new_status = serializer.validated_data.get("status", instance.status)
+
+        # если статус меняется – используем change_status
+        if new_status != instance.status:
+            instance.change_status(
+                new_status=new_status,
+                user=self.request.user,
+                comment=self.request.data.get("comment", ""),
+            )
+
+        # сохраняем остальные поля (если были)
+        serializer.save()
 
 class AlarmViewSet(viewsets.ModelViewSet):
     queryset = Alarm.objects.all()
@@ -144,9 +163,12 @@ class TimeLocationGroupedView(APIView):
             'results': serializer.data
         })
         
-class DeviceViewSet(viewsets.ModelViewSet):
+class DeviceViewSet(ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = DeviceFilter
 
     def get_queryset(self):
         qs = super().get_queryset()

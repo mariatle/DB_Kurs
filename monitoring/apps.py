@@ -22,3 +22,4 @@ class MonitoringConfig(AppConfig):
             logger.info("Сигналы успешно зарегистрированы")
         except Exception as exc:
             logger.error("Ошибка регистрации сигналов: %s", exc)
+            
